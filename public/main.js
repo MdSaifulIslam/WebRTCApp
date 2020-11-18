@@ -4,8 +4,11 @@ let inputRoomNumber = document.getElementById('roomNumber')
 let btnGoRoom = document.getElementById('goRoom')
 let localVideo = document.getElementById('localVideo')
 let remoteRoom = document.getElementById('remoteRoom')
+let h2CallName = document.getElementById('callName')
+let inputCallName = document.getElementById('inputCallName')
+let btnSetName = document.getElementById('setName')
 
-let roomNumber, localStream, remoteStream, rtcPeerConnection, isCaller
+let roomNumber, localStream, remoteStream, rtcPeerConnection, isCaller, dataChannel
 
 const iceServers = {
     'iceServer': [
@@ -30,6 +33,15 @@ btnGoRoom.onclick = () => {
 
         divSelectedRoom.style = "display: none"
         divConsultingRoom.style = "display: block"
+    }
+}
+
+btnSetName.onclick = () => {
+    if (inputCallName.value === '') {
+        alert('Please type a Call Name')
+    } else {
+        dataChannel.send(inputCallName.value)
+        h2CallName.innerText=inputCallName.value
     }
 }
 
@@ -77,6 +89,9 @@ socket.on('ready', ()=>{
             .catch (err =>{
                 console.log(err);
             })
+
+            dataChannel = rtcPeerConnection.createDataChannel(roomNumber)
+            dataChannel.onmessage = event => {h2CallName.innerText = event.data}
     }
 })
 
@@ -103,6 +118,11 @@ socket.on('offer', (event)=>{
             .catch (err =>{
                 console.log(err);
             })
+
+            rtcPeerConnection.ondatachannel = event => {
+                dataChannel = event.channel
+                dataChannel.onmessage = event => {h2CallName.innerText = event.data}
+            }
     }
 })
 
