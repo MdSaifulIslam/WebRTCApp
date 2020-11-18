@@ -66,6 +66,7 @@ socket.on('ready', ()=>{
         rtcPeerConnection.addTrack(localStream.getTracks()[1], localStream)
         rtcPeerConnection.createOffer()
             .then(sessionDescription =>{
+                console.log('sending offer', sessionDescription);
                 rtcPeerConnection.setLocalDescription(sessionDescription)
                 socket.emit('offer', {
                     type : 'offer',
@@ -87,9 +88,11 @@ socket.on('offer', (event)=>{
         rtcPeerConnection.ontrack = onAddStream
         rtcPeerConnection.addTrack(localStream.getTracks()[0], localStream)
         rtcPeerConnection.addTrack(localStream.getTracks()[1], localStream)
+        console.log('received offer', event);
         rtcPeerConnection.setRemoteDescription (new RTCSessionDescription(event))
         rtcPeerConnection.createAnswer()
             .then(sessionDescription =>{
+                console.log('sending answer', sessionDescription);
                 rtcPeerConnection.setLocalDescription(sessionDescription)
                 socket.emit('answer', {
                     type : 'answer',
@@ -104,10 +107,33 @@ socket.on('offer', (event)=>{
 })
 
 socket.on('answer', event => {
+    console.log('received answer', event);
     rtcPeerConnection.setRemoteDescription(new RTCSessionDescription(event))
+})
+
+socket.on('candidate', event =>{
+    const candiate = new RTCIceCandidate({
+        sdpMLineIndex : event.label,
+        candidate : event.candidate
+    })
+    console.log('receiverd candidate', candiate);
+    rtcPeerConnection.addIceCandidate(candiate)
 })
 
 function onAddStream(event){
     remoteVideo.srcObject = event.streams[0]
     remoteStream = event.streams[0]
+}
+
+function onIceCandidate(event){
+    if(event.candidate){
+        console.log('sending ice candiate', event.candidate);
+        socket.emit('candidate', {
+            type: 'candidate',
+            label: event.candidate.sdpMLineIndex,
+            id : event.candidate.sdpMid,
+            candidate: event.candidate.candidate,
+            room : roomNumber
+        })
+    }
 }
